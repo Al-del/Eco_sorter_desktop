@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "239732320078",
+    "firebase_url": "https://eco-sorter-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "eco-sorter",
+    "storage_bucket": "eco-sorter.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:239732320078:android:b7fc679216585321dfa01f",
+        "android_client_info": {
+          "package_name": "com.SHortCircuiT.Eco_Sorter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBy7wurV_AvhXCre1t_ZPFDhcNHETV1yD0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:239732320078:android:9556b10b88c3de54dfa01f",
+        "android_client_info": {
+          "package_name": "com.example.eco_sorter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBy7wurV_AvhXCre1t_ZPFDhcNHETV1yD0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:239732320078:android:5f90b7503a893dc7dfa01f",
+        "android_client_info": {
+          "package_name": "org.example.project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBy7wurV_AvhXCre1t_ZPFDhcNHETV1yD0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
