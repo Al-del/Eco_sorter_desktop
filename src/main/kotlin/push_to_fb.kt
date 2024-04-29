@@ -45,7 +45,7 @@ suspend fun getLocation(): LocationResponse? {
 object MongoClientConnectionExample {
     suspend fun push_code(colection: String) {
         // Replace the placeholders with your credentials and hostname
-        val connectionString = "git a"
+        val connectionString = "mongodb+srv://admin:admin@ecosorter.x4owlln.mongodb.net/?retryWrites=true&w=majority&appName=EcoSorter"
 
         // Create a new client and connect to the server
         val mongoClient: MongoClient = MongoClients.create(connectionString)
