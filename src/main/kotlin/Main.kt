@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import kotlinx.coroutines.launch
 
 private class MyApplicationState {
     val windows = mutableStateListOf<MyWindowState>()
@@ -62,28 +63,67 @@ private fun ApplicationScope.MyWindow(
     when (state.currentPage) {
         "Page1" -> Page1(state)
         "Page2" -> Page2(state)
+        "Code" -> Code(state)
     }
 }
+@Composable
+fun Code(state: MyWindowState) {
+Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+       Text("Code $random_numero")
+
+}
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
+        //Make a button on the left down corner to go back to the first page
+        Button(onClick = {
+            state.navigateTo("Page1")
+        }) {
+            Text("Back")
+        }
+    }
+}
+    }
 
 @Composable
 fun Page1(state: MyWindowState) {
+    val startClicked = remember { mutableStateOf(false) }
+
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Button(onClick = {
-            state.navigateTo("Page2")
+            startClicked.value = true
+          //
         }) {
             Text("Start")
+        }
+
+        if (startClicked.value) {
+            LaunchedEffect(Unit) {
+                val Redeem_code = MongoClientConnectionExample
+                Redeem_code.push_code("location")
+                state.navigateTo("Page2")
+            }
         }
     }
 }
 
 @Composable
 fun Page2(state: MyWindowState) {
+    val codeClicked = remember { mutableStateOf(false) }
+
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Button(onClick = {
-                // Perform action when "Code" button is clicked
+                codeClicked.value = true
             }) {
                 Text("Code")
+            }
+
+            if (codeClicked.value) {
+                LaunchedEffect(Unit) {
+                    val Redeem_code = MongoClientConnectionExample
+                    Redeem_code.push_code("Redeem_code")
+                    state.navigateTo("Code")
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))

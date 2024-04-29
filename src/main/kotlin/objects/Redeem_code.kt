@@ -1,6 +1,6 @@
 package objects
 
 class Redeem_code {
-    private val code: String = ""
-    private val points: Int = 0
+    var code: String = ""
+    var points: Int = 100
 }

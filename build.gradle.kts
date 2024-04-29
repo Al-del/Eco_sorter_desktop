@@ -3,6 +3,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 plugins {
     kotlin("jvm")
     id("org.jetbrains.compose")
+    kotlin("plugin.serialization") version "1.5.31"
 }
 
 group = "com.example"
@@ -27,6 +28,8 @@ dependencies {
     implementation("io.ktor:ktor-client-json-jvm:1.6.7")
     implementation("io.ktor:ktor-client-serialization-jvm:1.6.7")
 
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
 
 
     implementation("org.mongodb:mongodb-driver-sync:4.4.0")
