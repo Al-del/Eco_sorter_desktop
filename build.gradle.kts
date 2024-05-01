@@ -34,6 +34,8 @@ dependencies {
 
     implementation("org.mongodb:mongodb-driver-sync:4.4.0")
 
+
+
 }
 
 compose.desktop {

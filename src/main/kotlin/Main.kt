@@ -1,4 +1,5 @@
 import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,15 +12,28 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import kotlinx.coroutines.launch
+import java.io.ByteArrayInputStream
 import javax.sound.sampled.*
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.CountDownLatch
 import javax.sound.sampled.*
+import javax.sound.sampled.*
+import java.io.FileOutputStream
+import javax.sound.sampled.AudioFormat
+import javax.sound.sampled.AudioSystem
+import javax.sound.sampled.DataLine
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
+import kotlin.concurrent.thread
 private class MyApplicationState {
     val windows = mutableStateListOf<MyWindowState>()
 
@@ -63,13 +77,21 @@ class MyWindowState(
 @Composable
 private fun ApplicationScope.MyWindow(
     state: MyWindowState
-) = Window(onCloseRequest = state::close, title = state.title) {
-    when (state.currentPage) {
-        "Page1" -> Page1(state)
-        "Page2" -> Page2(state)
-        "Code" -> Code(state)
-        "Audio" -> RecordButton()
-        else -> Text("Unknown page: ${state.currentPage}")
+) {
+    val audioData = remember { mutableStateOf(byteArrayOf()) }
+
+    Window(onCloseRequest = state::close, title = state.title) {
+        when (state.currentPage) {
+            "Page1" -> Page1(state)
+            "Page2" -> Page2(state)
+            "Code" -> Code(state)
+            "Audio" -> {
+                RecordButton(audioData)
+                val floats = audioDataToFloats(audioData.value)
+                LineChart(floats)
+            }
+            else -> Text("Unknown page: ${state.currentPage}")
+        }
     }
 }
 @Composable
@@ -146,19 +168,31 @@ fun Page2(state: MyWindowState) {
 }
 
 fun main() = application {
-    val applicationState = remember { MyApplicationState() }
-
-    for (window in applicationState.windows) {
-        key(window) {
-            MyWindow(window)
-        }
+    Window(onCloseRequest = ::exitApplication) {
+        MyApp()
+    }
 
     }
-}
+
 @Composable
-fun RecordButton() {
+fun MyApp() {
+    val audioData = remember { mutableStateOf(byteArrayOf()) }
+
+    Column {
+        RecordButton(audioData)
+        PlayButton(audioData.value)
+        val floats = audioDataToFloats(audioData.value)
+        LineChart(floats)
+    }
+}
+
+@Composable
+fun RecordButton(audioData: MutableState<ByteArray>) {
     val isPressed = remember { mutableStateOf(false) }
-    val recorder = remember { AudioRecorder() }
+    val format = AudioFormat(8000.0f, 16, 1, true, true)
+    val info = DataLine.Info(TargetDataLine::class.java, format)
+    val line = AudioSystem.getLine(info) as TargetDataLine
+    val out = ByteArrayOutputStream()
 
     Box(
         modifier = Modifier
@@ -167,11 +201,33 @@ fun RecordButton() {
                 detectTapGestures(
                     onPress = {
                         isPressed.value = true
-                        recorder.startRecording()
+                        line.open(format)
+                        line.start()
+                        val buf = ByteArray(line.bufferSize)
+                        thread(start = true) {
+                            while (isPressed.value) {
+                                val count = line.read(buf, 0, buf.size)
+                                if (count > 0) {
+                                    out.write(buf, 0, count)
+                                }
+                            }
+                            out.close()
+                            line.stop()
+                            line.close()
+                            audioData.value = out.toByteArray()
+
+                            // Calculate and print the length of the recording
+                            val lengthInSeconds = audioData.value.size / (format.sampleRate * format.channels * (format.sampleSizeInBits / 8.0)).toDouble()
+                            println("Length of the recording: $lengthInSeconds seconds")
+
+                            // Save the recording to a file
+                            val audioInputStream = AudioInputStream(ByteArrayInputStream(audioData.value), format, audioData.value.size.toLong())
+                            val file = File("recording.wav")
+                            AudioSystem.write(audioInputStream, AudioFileFormat.Type.WAVE, file)
+                            println("Recording saved to ${file.absolutePath}")
+                        }
                         tryAwaitRelease()
                         isPressed.value = false
-                        recorder.stopRecording()
-                        recorder.playRecording()
                     }
                 )
             },
@@ -181,49 +237,58 @@ fun RecordButton() {
     }
 }
 
+@Composable
+fun PlayButton(audioData: ByteArray) {
+    val isPressed = remember { mutableStateOf(false) }
+    val format = AudioFormat(8000.0f, 16, 1, true, true)
+    val info = DataLine.Info(SourceDataLine::class.java, format)
+    val line = AudioSystem.getLine(info) as SourceDataLine
 
-
-
-class AudioRecorder {
-    private var targetDataLine: TargetDataLine? = null
-    private var audioBytes: ByteArray? = null
-
-    fun startRecording() {
-        val audioFormat = AudioFormat(16000.0f, 16, 2, true, true)
-        val info = DataLine.Info(TargetDataLine::class.java, audioFormat)
-        targetDataLine = AudioSystem.getLine(info) as TargetDataLine
-        targetDataLine?.open(audioFormat)
-        targetDataLine?.start()
-
-        // Start a new thread to read the audio data from the TargetDataLine
-        Thread {
-            val out = ByteArrayOutputStream()
-            val buffer = ByteArray(4096)
-            var bytesRead: Int
-            while (targetDataLine?.isRunning == true) {
-                bytesRead = targetDataLine?.read(buffer, 0, buffer.size) ?: 0
-                out.write(buffer, 0, bytesRead)
-            }
-            audioBytes = out.toByteArray()
-        }.start()
+    Button(onClick = {
+        isPressed.value = true
+        line.open(format)
+        line.start()
+        thread(start = true) {
+            line.write(audioData, 0, audioData.size)
+            line.drain()
+            line.stop()
+            line.close()
+            isPressed.value = false
+        }
+    }) {
+        Text(if (isPressed.value) "Playing..." else "Play")
     }
-
-    fun stopRecording() {
-        targetDataLine?.stop()
-        targetDataLine?.close()
+}
+fun audioDataToFloats(audioData: ByteArray): List<Float> {
+    val floats = mutableListOf<Float>()
+    for (i in audioData.indices step 2) {
+        val value = (audioData[i].toInt() shl 8) or (audioData[i + 1].toInt() and 0xFF)
+        floats.add(value.toFloat() / Short.MAX_VALUE.toFloat())
     }
+    return floats
+}
 
-    fun playRecording() {
-        val audioFormat = AudioFormat(16000.0f, 16, 2, true, true)
-        val info = DataLine.Info(SourceDataLine::class.java, audioFormat)
-        val sourceDataLine = AudioSystem.getLine(info) as SourceDataLine
-        sourceDataLine.open(audioFormat)
-        sourceDataLine.start()
+@Composable
+fun LineChart(data: List<Float>) {
+    val maxValue = data.maxOrNull() ?: 1f
+    val minValue = data.minOrNull() ?: 0f
+    val range = maxValue - minValue
+    println("MOR")
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val canvasWidth = size.width
+        val canvasHeight = size.height
 
-        // Write the audio data to the SourceDataLine
-        audioBytes?.let { sourceDataLine.write(it, 0, it.size) }
+        for (i in 1 until data.size) {
+            val x1 = (i - 1) * canvasWidth / (data.size - 1)
+            val y1 = canvasHeight - (data[i - 1] - minValue) / range * canvasHeight
+            val x2 = i * canvasWidth / (data.size - 1)
+            val y2 = canvasHeight - (data[i] - minValue) / range * canvasHeight
 
-        sourceDataLine.drain()
-        sourceDataLine.close()
+            drawLine(
+                color = Color.Blue,
+                start = Offset(x1, y1),
+                end = Offset(x2, y2)
+            )
+        }
     }
 }
